@@ -3,61 +3,49 @@
 
 #include <opencv2/features2d.hpp>
 
+#include <librealsense2/rs.hpp> // Include RealSense Cross Platform API	
+
 using namespace std;
 using namespace cv;
 
+#include "ContourDetector.h"
+
 int main(){
+    ContourDetector contour_detector;
 
-cv::VideoCapture cap;
-	cap.open("/dev/v4l/by-id/usb-Intel_R__RealSense_TM__Depth_Camera_415_Intel_R__RealSense_TM__Depth_Camera_415-video-index3");
+	// Create a Pipeline - this serves as a top-level API for streaming and processing frames
+    rs2::pipeline p;
 
-	
-	cv::Mat img;
+    rs2::colorizer color_map;
 
-	// Setup SimpleBlobDetector parameters.
-    SimpleBlobDetector::Params params;
+    // Configure and start the pipeline
+    p.start();
+    int i = 0;
 
-    // Change thresholds
-    params.minThreshold = 10;
-    params.maxThreshold = 200;
-
-    // Filter by Area.
-    params.filterByArea = true;
-    params.minArea = 1500;
-
-    // Filter by Circularity
-    params.filterByCircularity = true;
-    params.minCircularity = 0.1;
-
-    // Filter by Convexity
-    params.filterByConvexity = true;
-    params.minConvexity = 0.87;
-
-    // Filter by Inertia
-    params.filterByInertia = true;
-    params.minInertiaRatio = 0.01;
-
-	Ptr<SimpleBlobDetector> detector = SimpleBlobDetector::create();
-
-   
 	while (true)
-	{
+    {
+        // Block program until frames arrive
+        rs2::frameset frames = p.wait_for_frames();
 
-		if (cap.read(img))
-		{
+        // Try to get a frame of a depth image
+        rs2::frame depth = frames.get_depth_frame();
 
-			std::vector<KeyPoint> keypoints;
-			 // Detect blobs
-    		detector->detect(img, keypoints);
-			drawKeypoints( img, keypoints, img, Scalar(0,0,255), DrawMatchesFlags::DRAW_RICH_KEYPOINTS );
+        // Query frame size (width and height)
+        int w = depth.as<rs2::video_frame>().get_width();
+        int h = depth.as<rs2::video_frame>().get_height();
 
-			cv::imshow("Captured", img);
-			cv::waitKey(1);
-		}
-		else
-		{
-			cout << "Unable to capture from video device" << endl;
-			break;
-		}
-	}
+        Mat depth_image(Size(w, h), CV_16UC1, (void*)depth.get_data(), Mat::AUTO_STEP);
+
+        Mat depth_8bit;
+        depth_image.convertTo(depth_8bit, CV_8UC1, 1/16.0);
+
+
+        Mat contour;
+        contour_detector.run(depth_8bit, contour);
+
+        cv::imshow("depth", depth_8bit);
+        //cv::imshow("contour", contour);
+        cv::waitKey(100);
+        cout << i++ << endl;
+    }
 }	

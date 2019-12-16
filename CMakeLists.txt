@@ -10,7 +10,8 @@ file(GLOB vision_SRC
 include_directories( include )
 
 find_package( OpenCV REQUIRED )
+find_package(realsense2 REQUIRED)
 
 add_executable( realsense ${vision_SRC} )
 
-target_link_libraries( realsense ${OpenCV_LIBS} )
+target_link_libraries( realsense ${OpenCV_LIBS} ${realsense2_LIBRARY} )
