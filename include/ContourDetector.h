@@ -1,11 +1,20 @@
+#include "median.h"
+
 class ContourDetector
 {
 private:
 public:
+    Mat canny_output;
     void run(cv::Mat &img, cv::Mat &contour_image)
     {
-        Mat canny_output;
-        cv::Canny(img, canny_output, 2, 12);
+        double sigma = .33;
+
+        double v = cv::median(img);
+
+        int min = int(std::max(0.0, (1.0 - sigma) * v));
+        int max = int(std::min(255.0, (1.0 + sigma) * v));
+
+        cv::Canny(img, canny_output, min, max);
 
         vector<vector<Point>> contours;
         vector<Vec4i> hierarchy;
