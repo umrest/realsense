@@ -6,7 +6,7 @@ namespace cv
 {
 // calculates the median value of a single channel
 // based on https://github.com/arnaudgelas/OpenCVExamples/blob/master/cvMat/Statistics/Median/Median.cpp
-double median(cv::Mat channel)
+double median(cv::Mat channel, cv::Mat &mask)
 {
     double m = (channel.rows * channel.cols) / 2;
     int bin = 0;
@@ -18,7 +18,7 @@ double median(cv::Mat channel)
     bool uniform = true;
     bool accumulate = false;
     cv::Mat hist;
-    cv::calcHist(&channel, 1, 0, cv::Mat(), hist, 1, &histSize, &histRange, uniform, accumulate);
+    cv::calcHist(&channel, 1, 0, mask, hist, 1, &histSize, &histRange, uniform, accumulate);
 
     for (int i = 0; i < histSize && med < 0.0; ++i)
     {

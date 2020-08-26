@@ -12,7 +12,7 @@
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "environment": [{"name":"DISPLAY", "value": "192.168.61.1:0.0"}],
+            "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
             "setupCommands": [

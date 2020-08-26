@@ -9,7 +9,9 @@ public:
     {
         double sigma = .33;
 
-        double v = cv::median(img);
+        Mat mask;
+
+        double v = cv::median(img, mask);
 
         int min = int(std::max(0.0, (1.0 - sigma) * v));
         int max = int(std::min(255.0, (1.0 + sigma) * v));
