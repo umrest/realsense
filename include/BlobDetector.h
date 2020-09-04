@@ -1,3 +1,5 @@
+#pragma once
+
 class BlobDetector {
 	public:
     void run(cv::Mat &img){

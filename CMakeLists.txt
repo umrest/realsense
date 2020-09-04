@@ -4,7 +4,7 @@ project( realsense )
 
 file(GLOB vision_SRC
     "include/*.h"
-    "src/main.cpp"
+    "src/*.cpp"
 )
 
 include_directories( include 
