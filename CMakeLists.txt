@@ -1,11 +1,17 @@
 cmake_minimum_required(VERSION 2.8)
-set (CMAKE_CXX_STANDARD 11)
+set (CMAKE_CXX_STANDARD 17)
 project( realsense )
 
-file(GLOB vision_SRC
+
+add_subdirectory (tests)
+
+
+file(GLOB LIBREALSENSE_SRC
     "include/*.h"
     "src/*.cpp"
 )
+
+list(FILTER LIBREALSENSE_SRC EXCLUDE REGEX ".*/src/main.cpp")
 
 include_directories( include 
  ${BOOST_INCLUDE_DIRS})
@@ -18,6 +24,8 @@ find_package (Threads REQUIRED)
 
 link_directories( /usr/local/lib/comm )
 
-add_executable( realsense ${vision_SRC} )
+add_library ( librealsense ${LIBREALSENSE_SRC})
 
-target_link_libraries( realsense ${OpenCV_LIBS} comm ${realsense2_LIBRARY}  ${CMAKE_THREAD_LIBS_INIT} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY})
+add_executable( realsense "src/main.cpp" )
+
+target_link_libraries( realsense librealsense ${OpenCV_LIBS} comm ${realsense2_LIBRARY}  ${CMAKE_THREAD_LIBS_INIT} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY})

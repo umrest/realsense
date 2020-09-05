@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <comm/CommunicationDefinitions.h>
+#include <comm/Realsense_Command.h>
 
 cv::Point2f get_actual_point(cv::Point2f point, int width, int height){
     cv::Point2f ret;
@@ -14,17 +15,11 @@ cv::Point2f get_actual_point(cv::Point2f point, int width, int height){
 RealsenseDriver::RealsenseDriver() : client(comm::CommunicationDefinitions::IDENTIFIER::REALSENSE){
 
 }
-
-void show_scaled(Mat& img){
+void get_scaled(Mat& img, Mat& dst){
     double min;
-        double max;
-        cv::minMaxIdx(img, &min, &max);
-        cv::Mat adjMap;
-        cv::convertScaleAbs(img, adjMap, 255 / max);
-        
-        cv::imshow("aa", adjMap);
-        
-        cv::waitKey(100);
+    double max;
+    cv::minMaxIdx(img, &min, &max);
+    cv::convertScaleAbs(img, dst, 255 / max);
 }
 
 void RealsenseDriver::send_image(Mat &img)
@@ -68,7 +63,7 @@ void RealsenseDriver::run(){
 
     int i = 0;
 
-
+    Projection p(55, .5, &intrin , scale);
 
     while (true)
     {
@@ -78,7 +73,6 @@ void RealsenseDriver::run(){
         // Try to get a frame of a depth image
         rs2::frame depth = frames.get_depth_frame();
     
-        
         // Query frame size (width and height)
         int w = depth.as<rs2::video_frame>().get_width();
         int h = depth.as<rs2::video_frame>().get_height();
@@ -86,68 +80,45 @@ void RealsenseDriver::run(){
         // get depth map and convert it to 8bit
         Mat depth_image(Size(w, h), CV_16UC1, (void *)depth.get_data(), Mat::AUTO_STEP);
 
+        Mat projected;
+        p.project(depth_image, projected);
 
-        // Generate mask to fill in holes
+        plane_extractor.run(projected);
 
+        Mat scaled;
+        get_scaled(projected, scaled);
 
+        Mat obstacle_mask;
+        threshold( projected, obstacle_mask, 1, 255, cv::THRESH_BINARY );
 
-        Mat dst;
-        Projection p(55, .5, &intrin , scale);
-        p.project(depth_image, dst);
+        cv::erode(obstacle_mask, obstacle_mask, Mat());
+        cv::dilate(obstacle_mask, obstacle_mask, Mat());
 
-        Mat mask;
-        threshold( dst, mask, 0, 255, 1 );
+        send_image(obstacle_mask);
 
-        Mat mask_inv = ~mask;
+        std::vector<Contour> contours = contour_detector.run(obstacle_mask);
+        std::cout << contours.size() << std::endl;
 
-        cv::Scalar mean2 = cv::mean(dst, mask_inv);
+        realsense._obstacle_1.set_x(0);
+        realsense._obstacle_1.set_y(0);
+        realsense._obstacle_1.set_width(0);
+        realsense._obstacle_1.set_height(0);
 
-        int mean = (int)mean2[0];
+        realsense._obstacle_2.set_x(0);
+        realsense._obstacle_2.set_y(0);
+        realsense._obstacle_2.set_width(0);
+        realsense._obstacle_2.set_height(0);
 
-        Mat dst_filled = dst.setTo(mean, mask);
+        realsense._obstacle_3.set_x(0);
+        realsense._obstacle_3.set_y(0);
+        realsense._obstacle_3.set_width(0);
+        realsense._obstacle_3.set_height(0);
 
-
+        realsense._obstacle_4.set_x(0);
+        realsense._obstacle_4.set_y(0);
+        realsense._obstacle_4.set_width(0);
+        realsense._obstacle_4.set_height(0);
         
-        // Anything 15 cemeters above the ground( the mean)
-        int threshold2 = mean - .05 * 100;
-
-        Mat mask2;
-        threshold( dst_filled, mask2, threshold2, 255, 1 );
-
-        
-
-        Mat mask_test = mask2 & mask_inv;
-
-        cv::erode(mask_test, mask_test, Mat());
-        cv::dilate(mask_test, mask_test, Mat());
-
-        //show_scaled(dst);
-
-        send_image(mask_test);
-
-        std::vector<Contour> contours = contour_detector.run(mask_test);
-      std::cout << contours.size() << std::endl;
-
-          realsense._obstacle_1.set_x(0);
-          realsense._obstacle_1.set_y(0);
-          realsense._obstacle_1.set_width(0);
-          realsense._obstacle_1.set_height(0);
-
-          realsense._obstacle_2.set_x(0);
-          realsense._obstacle_2.set_y(0);
-          realsense._obstacle_2.set_width(0);
-          realsense._obstacle_2.set_height(0);
-
-          realsense._obstacle_3.set_x(0);
-          realsense._obstacle_3.set_y(0);
-          realsense._obstacle_3.set_width(0);
-          realsense._obstacle_3.set_height(0);
-
-          realsense._obstacle_4.set_x(0);
-          realsense._obstacle_4.set_y(0);
-          realsense._obstacle_4.set_width(0);
-          realsense._obstacle_4.set_height(0);
-          
         if(contours.size() > 0){
           realsense._obstacle_1.set_x((contours[0].x - 100) / 2.54);
           realsense._obstacle_1.set_y((200-contours[0].y)/ 2.54);
@@ -155,8 +126,7 @@ void RealsenseDriver::run(){
           realsense._obstacle_1.set_height( contours[0].radius*2 / 2.54);
         }
       
-
 			  client.send_message(&realsense);
-        
+
     }
-    }
+}
