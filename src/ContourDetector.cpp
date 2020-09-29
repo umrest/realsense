@@ -1,10 +1,14 @@
-#include "median.h"
 
 #include "ContourDetector.h"
 
 #include <iostream>
 
-
+struct ContourComparatorSize
+{
+    bool operator()(Contour& lhs, Contour& rhs){
+        return lhs.radius < rhs.radius;
+    }
+};
 
 std::vector<Contour> ContourDetector::run(cv::Mat &img)
     {
@@ -13,7 +17,7 @@ std::vector<Contour> ContourDetector::run(cv::Mat &img)
 
         std::vector<Contour> contours;
 
-        findContours(img, _contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
+        findContours(img, _contours, hierarchy, cv::RetrievalModes::RETR_TREE, cv::ContourApproximationModes::CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
 
         for (size_t i = 0; i < _contours.size(); ++i) {
             float radius = 0;
@@ -36,6 +40,8 @@ std::vector<Contour> ContourDetector::run(cv::Mat &img)
            
             
         }
+
+        std::sort(contours.begin(), contours.end(), ContourComparatorSize());
 
         return contours;
     }

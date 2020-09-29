@@ -94,37 +94,45 @@ void RealsenseDriver::run(){
         cv::erode(obstacle_mask, obstacle_mask, Mat());
         cv::dilate(obstacle_mask, obstacle_mask, Mat());
 
-        send_image(obstacle_mask);
-
         std::vector<Contour> contours = contour_detector.run(obstacle_mask);
-        std::cout << contours.size() << std::endl;
 
-        realsense._obstacle_1.set_x(0);
-        realsense._obstacle_1.set_y(0);
-        realsense._obstacle_1.set_width(0);
-        realsense._obstacle_1.set_height(0);
-
-        realsense._obstacle_2.set_x(0);
-        realsense._obstacle_2.set_y(0);
-        realsense._obstacle_2.set_width(0);
-        realsense._obstacle_2.set_height(0);
-
-        realsense._obstacle_3.set_x(0);
-        realsense._obstacle_3.set_y(0);
-        realsense._obstacle_3.set_width(0);
-        realsense._obstacle_3.set_height(0);
-
-        realsense._obstacle_4.set_x(0);
-        realsense._obstacle_4.set_y(0);
-        realsense._obstacle_4.set_width(0);
-        realsense._obstacle_4.set_height(0);
+std::vector<comm::Obstacle*> obstacles;
+        obstacles.push_back(&realsense._obstacle_1);
+        obstacles.push_back(&realsense._obstacle_2);
+        obstacles.push_back(&realsense._obstacle_3);
+        obstacles.push_back(&realsense._obstacle_4);
         
-        if(contours.size() > 0){
-          realsense._obstacle_1.set_x((contours[0].x - 100) / 2.54);
-          realsense._obstacle_1.set_y((200-contours[0].y)/ 2.54);
-          realsense._obstacle_1.set_width ( contours[0].radius*2 / 2.54);
-          realsense._obstacle_1.set_height( contours[0].radius*2 / 2.54);
-        }
+        for(int i = 0; i < obstacles.size(); i++){
+
+            if(contours.size() > i){
+                obstacles[i]->set_x((contours[i].x - 100) / 2.54);
+                obstacles[i]->set_y((200-contours[i].y)/ 2.54);
+                obstacles[i]->set_width ( contours[i].radius*2 / 2.54);
+                obstacles[i]->set_height( contours[i].radius*2 / 2.54);
+            }
+            else{
+                obstacles[i]->set_x(0);
+                obstacles[i]->set_y(0);
+                obstacles[i]->set_width (0);
+                obstacles[i]->set_height(0);
+            }
+
+
+        } 
+
+        auto messages = client.get_messages();
+			for(auto &m : messages){
+				if(m->type() == comm::CommunicationDefinitions::TYPE::REALSENSE_COMMAND){
+					comm::Realsense_Command* command = (comm::Realsense_Command*)m.get();
+					if(command->get_command() == 10){
+						send_image(obstacle_mask);
+					}
+					if(command->get_command() == 9){
+                        send_image(projected);
+					}
+				}
+			}
+    
       
 			  client.send_message(&realsense);
 
